@@ -21,16 +21,32 @@ while true do
                 line, err = client:receive()
             end
 
-            print("Received request:\n" ..request_text)
+            if method == "GET" then
+                if route == "/" then
+                    local response = "HTTP/1.1 200 OK\r\n\r\nThis is the home page"
+                    client:send(response)
+                elseif route == "/about" then
+                    local response = "HTTP/1.1 200 OK\r\n\r\nThis is the about page"
+                    client:send(response)
+                else
+                    local response = "HTTP/1.1 200 OK\r\n\r\nThis works!"
+                    client:send(response)
+                end 
+                
+            else
+                local response = "HTTP/1.1 200 OK\r\n\r\nThis works!"
+                client:send(response)
+            end
+            -- elseif method == "POST" then
+            -- end
 
-            local response = "HTTP/1.1 200 OK\r\n\r\nThis works!"
-            client:send(response)
+            print("Received request:\n" ..request_text)
         else
             local response = "HTTP/1.1 400 Bad Request\r\n\r\n"
             client:send(response)
         end
     else
-        print("Client disonnected on error" ..err)
+        print("Client disonnected on error: " ..err)
     end
 
     client:close()
