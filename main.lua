@@ -1,5 +1,5 @@
 local socket = require("socket")
-local server = assert(socket.bind("*", 0))
+local server = assert(socket.bind("*", 8020))
 local ip, port = server:getsockname()
 print("Please telnet to localhost on port " .. port)
 
@@ -10,15 +10,28 @@ while true do
     local request_text = ""
     local line, err = client:receive()
 
-    while not err do 
-        request_text = request_text .. line .. "\n"
-        if line == "" then break end
-        line, err = client:receive()
-    end    
+    
+    if not err then
+        local method, route = line:match("^(%u+)%s+(%S+)")
 
-    print("Received request:\n" ..request_text)
+        if method and route then           
+            while not err do
+                request_text = request_text .. line .. "\n"
+                if line == "" then break end
+                line, err = client:receive()
+            end
 
-    local response = "HTTP/1.1 200 OK\r\n\r\nThis works!"
-    client:send(response)
+            print("Received request:\n" ..request_text)
+
+            local response = "HTTP/1.1 200 OK\r\n\r\nThis works!"
+            client:send(response)
+        else
+            local response = "HTTP/1.1 400 Bad Request\r\n\r\n"
+            client:send(response)
+        end
+    else
+        print("Client disonnected on error" ..err)
+    end
+
     client:close()
 end
