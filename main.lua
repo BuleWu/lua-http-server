@@ -1,7 +1,15 @@
 local socket = require("socket")
 local server = assert(socket.bind("*", 8020))
-local ip, port = server:getsockname()
-print("Please telnet to localhost on port " .. port)
+-- local ip, port = server:getsockname()
+
+local function readFile(path)
+    local file = io.open(path, "rb")
+    if not file then return nil end
+
+    local content = file:read("*a")
+    file:close()
+    return content
+end
 
 while true do
     local client = server:accept()
@@ -22,23 +30,38 @@ while true do
             end
 
             if method == "GET" then
-                if route == "/" then
-                    local response = "HTTP/1.1 200 OK\r\n\r\nThis is the home page"
-                    client:send(response)
-                elseif route == "/about" then
-                    local response = "HTTP/1.1 200 OK\r\n\r\nThis is the about page"
+                local filename = route
+                if filename == "/" then
+                  filename = "/index.html"
+                -- elseif filename == "/about" then
+                --     local response = "HTTP/1.1 200 OK\r\n\r\nThis is the about page"
+                --     client:send(response)
+                -- else
+                --     local response = "HTTP/1.1 200 OK\r\n\r\nThis works!"
+                --     client:send(response)
+                -- end 
+                end
+
+                local filepath = "." .. filename
+                local file_content = readFile(filepath)
+
+                if file_content then
+                    local response = "HTTP/1.1 200 OK\r\n" ..
+                    "Content-Type: text/html\r\n" .. 
+                    "Content-Length: " .. #file_content .. "\r\n" .. 
+                    "\r\n" ..
+                    file_content
+
                     client:send(response)
                 else
-                    local response = "HTTP/1.1 200 OK\r\n\r\nThis works!"
-                    client:send(response)
-                end 
-                
+                    local body = "404 Not Found"
+                    client:send("HTTP/1.1 404 Not Found\r\nContent-Length: ".. #body .. "\r\n\r\n" .. body)
+                end
+            elseif method == "POST" then
+                client:send("HTTP/1.1 501 Not Implemented\r\n\r\n")
             else
-                local response = "HTTP/1.1 200 OK\r\n\r\nThis works!"
-                client:send(response)
+                client:send("HTTP/1.1 501 Not Implemented\r\n\r\n")
             end
-            -- elseif method == "POST" then
-            -- end
 
             print("Received request:\n" ..request_text)
         else
