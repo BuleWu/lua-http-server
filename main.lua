@@ -17,29 +17,36 @@ while true do
     
     local request_text = ""
     local line, err = client:receive()
-
+    
     
     if not err then
         local method, route = line:match("^(%u+)%s+(%S+)")
+        local content_length = tonumber(0)
 
         if method and route then           
             while not err do
                 request_text = request_text .. line .. "\n"
                 if line == "" then break end
                 line, err = client:receive()
+
+                local key, value = line:match("^(.-):%s*(.*)")
+
+                if key and key:lower() == "content-length" then
+                    content_length = tonumber(value)
+                end
+            end
+
+            local body = ""
+            if content_length > 0 then
+                body = client:receive(content_length)
             end
 
             if method == "GET" then
                 local filename = route
                 if filename == "/" then
                   filename = "/index.html"
-                -- elseif filename == "/about" then
-                --     local response = "HTTP/1.1 200 OK\r\n\r\nThis is the about page"
-                --     client:send(response)
-                -- else
-                --     local response = "HTTP/1.1 200 OK\r\n\r\nThis works!"
-                --     client:send(response)
-                -- end 
+                elseif filename == "/about" then
+                    filename = "/about.html"
                 end
 
                 local filepath = "." .. filename
@@ -58,7 +65,8 @@ while true do
                     client:send("HTTP/1.1 404 Not Found\r\nContent-Length: ".. #body .. "\r\n\r\n" .. body)
                 end
             elseif method == "POST" then
-                client:send("HTTP/1.1 501 Not Implemented\r\n\r\n")
+                print("Received POST data: ".. body)
+                client:send("HTTP/1.1 201 Created\r\nContent-Length: ".. #body .. "\r\n\r\n" .. body)
             else
                 client:send("HTTP/1.1 501 Not Implemented\r\n\r\n")
             end
